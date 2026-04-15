@@ -285,9 +285,13 @@ if st.button("🔀 Shuffle Groups", type="primary", width="stretch"):
     if len(present) < 2:
         st.error("Need at least 2 present participants to form groups.")
     else:
-        st.session_state["groups"] = generate_groups(present)
+        _new_groups = generate_groups(present)
+        st.session_state["groups"] = _new_groups
         st.session_state["present_set"] = set(present)
         st.session_state["n_present"] = len(present)
+        st.session_state["ta_pairs"] = zoom_text(_new_groups["pairs"], "Room")
+        st.session_state["ta_g4a"]   = zoom_text(_new_groups["g4a"],   "Room")
+        st.session_state["ta_g4b"]   = zoom_text(_new_groups["g4b"],   "Room")
 
 # ---------------------------------------------------------------------------
 # Results
