@@ -134,6 +134,9 @@ celerybeat.pid
 # SageMath parsed files
 *.sage.py
 
+# Participant data (personal names — keep off git)
+tmp/*.xlsx
+
 # Environments
 .env
 .envrc
@@ -205,3 +208,6 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# temporary files and folders
+tmp/
