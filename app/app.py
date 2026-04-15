@@ -252,6 +252,13 @@ with col_desel:
         for i in range(n_total):
             st.session_state[f"p_{i}"] = False
 
+# Initialise checkbox state on first load (all present by default).
+# Must happen before rendering so that session_state owns the value —
+# avoids the "created with default value but also set via Session State API" warning.
+for i in range(n_total):
+    if f"p_{i}" not in st.session_state:
+        st.session_state[f"p_{i}"] = True
+
 # Three-column checkbox grid — fill each column top-to-bottom so names read A-Z down each column
 cols = st.columns(3)
 checked: dict[str, bool] = {}
@@ -260,7 +267,7 @@ for col_idx, col in enumerate(cols):
     with col:
         for i in range(col_idx * col_size, min((col_idx + 1) * col_size, n_total)):
             name = all_names[i]
-            checked[name] = st.checkbox(name, value=True, key=f"p_{i}")
+            checked[name] = st.checkbox(name, key=f"p_{i}")
 
 present = [name for name, ok in checked.items() if ok]
 absent_count = n_total - len(present)
