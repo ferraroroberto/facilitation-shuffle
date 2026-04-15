@@ -137,10 +137,14 @@ def _build_summary_df(
     g4b_map  = {p: i for i, g in enumerate(groups["g4b"],   1) for p in g}
 
     df = roster_df.copy()
-    df["present"]          = df[name_col].apply(lambda n: 1 if n in present_set else 0)
-    df["pair (round 1)"]   = df[name_col].apply(lambda n: pair_map.get(n, ""))
-    df["group_4A (round 2)"] = df[name_col].apply(lambda n: g4a_map.get(n, ""))
-    df["group_4B (round 3)"] = df[name_col].apply(lambda n: g4b_map.get(n, ""))
+    df["present"]            = df[name_col].apply(lambda n: 1 if n in present_set else 0)
+    df["pair (round 1)"]     = df[name_col].apply(lambda n: pair_map.get(n, pd.NA))
+    df["group_4A (round 2)"] = df[name_col].apply(lambda n: g4a_map.get(n, pd.NA))
+    df["group_4B (round 3)"] = df[name_col].apply(lambda n: g4b_map.get(n, pd.NA))
+
+    # Cast to nullable integer so Arrow serialization works cleanly (absent rows → <NA>)
+    for col in ["pair (round 1)", "group_4A (round 2)", "group_4B (round 3)"]:
+        df[col] = df[col].astype(pd.Int64Dtype())
 
     return df
 
