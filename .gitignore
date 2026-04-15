@@ -211,3 +211,4 @@ __marimo__/
 
 # temporary files and folders
 tmp/
+.claude/
