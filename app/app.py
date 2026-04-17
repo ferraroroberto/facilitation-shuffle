@@ -1,7 +1,7 @@
 """
 Facilitation Shuffle — Streamlit app for 1-2-4-all group generation.
 
-Julia uses this during sessions to:
+Use this during sessions to:
   1. Check who is present (all ticked by default).
   2. Click Shuffle Groups to generate pairs → groups of 4 (round A) → groups of 4 (round B).
   3. Copy-paste the plain-text output into Zoom breakout rooms.

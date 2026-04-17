@@ -1,7 +1,7 @@
 # Facilitation Shuffle — Claude Code Instructions
 
 ## Project
-Streamlit app for 1-2-4-all group randomization. Julia Garcia Marina (program manager, ESADE) is the end-user; Roberto Ferraro is the developer/facilitator. See `AGENTS.md` for full context, codebase map, and algorithm docs.
+Streamlit app for 1-2-4-all group randomization. The program manager is the typical end-user; a separate maintainer handles development and in-session support. See `AGENTS.md` for full context, codebase map, and algorithm docs.
 
 ## Key rules
 

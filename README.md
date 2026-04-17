@@ -4,7 +4,7 @@ Streamlit app that randomizes workshop participants into **1-2-4-all** breakout 
 
 ## What it does
 
-Julia (program manager) uses this during ESADE facilitation sessions:
+The program manager uses this during live workshop facilitation:
 
 1. **Check presence** — all participants ticked by default; uncheck absentees.
 2. **Shuffle Groups** — generates pairs → groups of 4 (round A) → groups of 4 (round B).
@@ -17,13 +17,13 @@ Julia (program manager) uses this during ESADE facilitation sessions:
 launch_app.bat
 ```
 
-To share with Julia over the internet (Cloudflare tunnel):
+To share the app over the internet (Cloudflare tunnel):
 
 ```bat
 launch_server.bat
 ```
 
-The tunnel prints a public `https://` URL — share it with Julia. Requires [`cloudflared`](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/) installed.
+The tunnel prints a public `https://` URL — share it with participants as needed. Requires [`cloudflared`](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/) installed.
 
 ## Setup
 
@@ -88,3 +88,7 @@ launch_app.bat            Local launch
 launch_server.bat         Streamlit + Cloudflare tunnel
 requirements.txt
 ```
+
+## License
+
+[MIT](LICENSE) — Copyright (c) 2026 Roberto Ferraro.

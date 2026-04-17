@@ -2,7 +2,7 @@
 
 ## Context
 **What**: Streamlit app that randomizes workshop participants into 1-2-4-all breakout groups (pairs → groups of 4A → groups of 4B) for Zoom sessions.
-**Why**: Julia (program manager) needs to check who is present, shuffle groups, and copy-paste room assignments into Zoom breakout rooms — without Roberto's (facilitator) help during live sessions.
+**Why**: The program manager needs to check who is present, shuffle groups, and copy-paste room assignments into Zoom breakout rooms — without relying on the maintainer during live sessions.
 **Stack**: Python 3.x, Streamlit, openpyxl, pandas. Windows-first (`launch_app.bat` / `launch_server.bat` + Cloudflare tunnel).
 
 ## Codebase Map
@@ -21,7 +21,7 @@ launch_app.bat
 # or
 .venv\Scripts\python.exe -m streamlit run app\app.py
 
-# Run with public Cloudflare tunnel (share URL with Julia)
+# Run with public Cloudflare tunnel (share URL with participants)
 launch_server.bat
 ```
 
@@ -36,7 +36,7 @@ Excel `.xlsx` with at least column A. Row 1 = headers.
 | D | `country` | optional |
 | E | `present` | optional (ignored — UI checkboxes take precedence) |
 
-Default path: `tmp/participants.xlsx`. Julia can also upload a different file via the sidebar.
+Default path: `tmp/participants.xlsx`. A different file can be uploaded via the sidebar.
 
 ## Group Generation Algorithm (src/randomize_groups.py)
 
@@ -58,7 +58,7 @@ Many random shuffles of names; each sliced into sizes from a greedy 4s-and-3s pa
 ## Standards
 - **Imports order**: stdlib → third-party → local (`src.*`).
 - **Naming**: `snake_case` files/functions, `UPPER_CASE` constants.
-- **Sort**: always use diacritic-aware sort for participant names (`unicodedata.normalize("NFD", ...)` stripping category "Mn" chars) so accented names (Álvaro, Belén) sort correctly.
+- **Sort**: always use diacritic-aware sort for participant names (`unicodedata.normalize("NFD", ...)` stripping category "Mn" chars) so accented names sort correctly.
 
 ## Streamlit Conventions
 - `app/app.py` handles all UI; business logic stays in `src/`.
