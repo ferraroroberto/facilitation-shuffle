@@ -7,9 +7,12 @@ Writes columns F–I from roster + ``present``; only rows with ``present == 1`` 
 from __future__ import annotations
 
 import argparse
+import logging
 import random
 import sys
 from pathlib import Path
+
+log = logging.getLogger(__name__)
 
 from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Alignment, Font
@@ -259,12 +262,12 @@ def run(path: Path, seed: int | None = None) -> None:
 
     present_names, row_map = _read_participants(ws)
     n = len(present_names)
-    print(f"Present (count): {n}")
+    log.info("Present (count): %s", n)
 
     all_names = list(row_map.keys())
 
     if n == 0:
-        print("No participants with present=1; clearing group columns only.")
+        log.info("No participants with present=1; clearing group columns only.")
         id_pair: dict[str, int] = {}
         id_f: dict[str, int] = {}
         id_g: dict[str, int] = {}
@@ -275,10 +278,10 @@ def run(path: Path, seed: int | None = None) -> None:
         random.shuffle(shuffled)
 
         pair_units = _build_phase1_units(shuffled, n)
-        print(f"Phase1 units: {len(pair_units)} -> sizes {[len(u) for u in pair_units]}")
+        log.info("Phase1 units: %s -> sizes %s", len(pair_units), [len(u) for u in pair_units])
 
         groups_f = _build_phase2_groups(pair_units, n)
-        print(f"Phase2 (personal_readme_g4): {len(groups_f)} -> sizes {[len(g) for g in groups_f]}")
+        log.info("Phase2 (personal_readme_g4): %s -> sizes %s", len(groups_f), [len(g) for g in groups_f])
 
         person_to_phase2_idx: dict[str, int] = {}
         for idx, g in enumerate(groups_f):
@@ -287,9 +290,9 @@ def run(path: Path, seed: int | None = None) -> None:
 
         groups_g, p3_pen = _build_phase3_relaxed(shuffled, n, person_to_phase2_idx)
         sz = [len(g) for g in groups_g]
-        print(
-            f"Phase3 (common_enemy_g4): {len(groups_g)} -> sizes {sz} "
-            f"(min={min(sz)}; phase2-cohort overlap penalty={p3_pen})"
+        log.info(
+            "Phase3 (common_enemy_g4): %s -> sizes %s (min=%s; phase2-cohort overlap penalty=%s)",
+            len(groups_g), sz, min(sz), p3_pen,
         )
 
         id_pair = _assign_ids(pair_units)
@@ -339,7 +342,7 @@ def run(path: Path, seed: int | None = None) -> None:
         ws.column_dimensions[letter].width = 14
 
     wb.save(path)
-    print(f"Saved: {path}")
+    log.info("Saved: %s", path)
 
 
 def _make_fixture_xlsx(path: Path, n: int = 15) -> None:
@@ -355,10 +358,11 @@ def _make_fixture_xlsx(path: Path, n: int = 15) -> None:
         ws.cell(row=r, column=1).value = f"Participant {i + 1}"
         ws.cell(row=r, column=COL_PRESENT).value = 1
     wb.save(path)
-    print(f"Wrote fixture: {path}")
+    log.info("Wrote fixture: %s", path)
 
 
 def main() -> None:
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
     parser = argparse.ArgumentParser(description="Randomize pair and group columns in participant xlsx.")
     parser.add_argument(
         "xlsx",
@@ -380,8 +384,8 @@ def main() -> None:
         return
 
     if not args.xlsx.exists():
-        print(f"File not found: {args.xlsx}", file=sys.stderr)
-        print("Run with --make-fixture to create a sample workbook.", file=sys.stderr)
+        log.error("File not found: %s", args.xlsx)
+        log.error("Run with --make-fixture to create a sample workbook.")
         sys.exit(1)
 
     run(args.xlsx, seed=args.seed)
