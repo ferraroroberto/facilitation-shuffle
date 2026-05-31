@@ -10,7 +10,6 @@ Use this during sessions to:
 from __future__ import annotations
 
 import io
-import random
 import sys
 import unicodedata
 from pathlib import Path
@@ -28,11 +27,7 @@ DEFAULT_XLSX = ROOT / "tmp" / "participants.xlsx"
 
 # Make src/ importable so we can reuse the group-building logic.
 sys.path.insert(0, str(ROOT))
-from src.randomize_groups import (  # noqa: E402  (after sys.path patch)
-    _build_phase1_units,
-    _build_phase2_groups,
-    _build_phase3_relaxed,
-)
+from src.randomize_groups import build_groups  # noqa: E402  (after sys.path patch)
 
 # ---------------------------------------------------------------------------
 # Helpers — load participants
@@ -102,17 +97,7 @@ def _load_from_path(path: str) -> tuple[list[str], pd.DataFrame]:
 
 def generate_groups(present: list[str]) -> dict[str, list[list[str]]]:
     """Run all three phases and return group assignments."""
-    n = len(present)
-    shuffled = present[:]
-    random.shuffle(shuffled)
-
-    pair_units = _build_phase1_units(shuffled, n)
-    groups_g4a = _build_phase2_groups(pair_units, n)
-
-    person_to_phase2_idx = {p: idx for idx, g in enumerate(groups_g4a) for p in g}
-    groups_g4b, _ = _build_phase3_relaxed(shuffled, n, person_to_phase2_idx)
-
-    return {"pairs": pair_units, "g4a": groups_g4a, "g4b": groups_g4b}
+    return build_groups(present)
 
 
 def zoom_text(groups: list[list[str]], label: str = "Room") -> str:
