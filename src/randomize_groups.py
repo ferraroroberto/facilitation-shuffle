@@ -253,6 +253,42 @@ def _assign_ids(groups: list[list[str]]) -> dict[str, int]:
     return out
 
 
+def build_groups(present: list[str]) -> dict[str, list[list[str]]]:
+    """
+    Run the full three-phase orchestration for a list of present participants.
+
+    Parameters
+    ----------
+    present : list[str]
+        Names of present participants (will be shuffled in place of a copy).
+
+    Returns
+    -------
+    dict with keys ``"pairs"`` (phase-1 units), ``"g4a"`` (phase-2 groups of ~4),
+    ``"g4b"`` (phase-3 groups of ~4, optimised for mixing).
+    """
+    n = len(present)
+    shuffled = present[:]
+    random.shuffle(shuffled)
+
+    pair_units = _build_phase1_units(shuffled, n)
+    log.info("Phase1 units: %s -> sizes %s", len(pair_units), [len(u) for u in pair_units])
+
+    groups_g4a = _build_phase2_groups(pair_units, n)
+    log.info("Phase2 (personal_readme_g4): %s -> sizes %s", len(groups_g4a), [len(g) for g in groups_g4a])
+
+    person_to_phase2_idx: dict[str, int] = {p: idx for idx, g in enumerate(groups_g4a) for p in g}
+
+    groups_g4b, p3_pen = _build_phase3_relaxed(shuffled, n, person_to_phase2_idx)
+    sz = [len(g) for g in groups_g4b]
+    log.info(
+        "Phase3 (common_enemy_g4): %s -> sizes %s (min=%s; phase2-cohort overlap penalty=%s)",
+        len(groups_g4b), sz, min(sz), p3_pen,
+    )
+
+    return {"pairs": pair_units, "g4a": groups_g4a, "g4b": groups_g4b}
+
+
 def run(path: Path, seed: int | None = None) -> None:
     if seed is not None:
         random.seed(seed)
@@ -274,26 +310,11 @@ def run(path: Path, seed: int | None = None) -> None:
         person_to_f_set: dict[str, set[str]] = {}
         person_to_g_set: dict[str, set[str]] = {}
     else:
-        shuffled = present_names[:]
-        random.shuffle(shuffled)
+        result = build_groups(present_names)
 
-        pair_units = _build_phase1_units(shuffled, n)
-        log.info("Phase1 units: %s -> sizes %s", len(pair_units), [len(u) for u in pair_units])
-
-        groups_f = _build_phase2_groups(pair_units, n)
-        log.info("Phase2 (personal_readme_g4): %s -> sizes %s", len(groups_f), [len(g) for g in groups_f])
-
-        person_to_phase2_idx: dict[str, int] = {}
-        for idx, g in enumerate(groups_f):
-            for p in g:
-                person_to_phase2_idx[p] = idx
-
-        groups_g, p3_pen = _build_phase3_relaxed(shuffled, n, person_to_phase2_idx)
-        sz = [len(g) for g in groups_g]
-        log.info(
-            "Phase3 (common_enemy_g4): %s -> sizes %s (min=%s; phase2-cohort overlap penalty=%s)",
-            len(groups_g), sz, min(sz), p3_pen,
-        )
+        pair_units = result["pairs"]
+        groups_f = result["g4a"]
+        groups_g = result["g4b"]
 
         id_pair = _assign_ids(pair_units)
         id_f = _assign_ids(groups_f)
