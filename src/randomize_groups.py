@@ -1,5 +1,5 @@
 """
-Workshop group randomizer → Excel. See ``randomize_groups.md`` for full documentation.
+Workshop group randomizer → Excel. See ``README.md`` ("Group generation algorithm") for full documentation.
 
 Writes columns F–I from roster + ``present``; only rows with ``present == 1`` get group ids.
 """
