@@ -9,15 +9,11 @@ Use this during sessions to:
 """
 from __future__ import annotations
 
-import io
 import sys
-import unicodedata
 from pathlib import Path
 
 import pandas as pd
 import streamlit as st
-from openpyxl import load_workbook
-from openpyxl.styles import Alignment, Font
 
 # ---------------------------------------------------------------------------
 # Paths
@@ -25,70 +21,24 @@ from openpyxl.styles import Alignment, Font
 ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_XLSX = ROOT / "tmp" / "participants.xlsx"
 
-# Make src/ importable so we can reuse the group-building logic.
+# Make src/ importable so we can reuse the data logic.
 sys.path.insert(0, str(ROOT))
-from src.randomize_groups import _assign_ids, build_groups  # noqa: E402  (after sys.path patch)
+from src.randomize_groups import build_groups  # noqa: E402  (after sys.path patch)
+from src.roster_io import (  # noqa: E402
+    load_participants_from_bytes,
+    load_participants_from_path,
+)
+from src.summary import build_summary_df, df_to_xlsx_bytes  # noqa: E402
+
 
 # ---------------------------------------------------------------------------
-# Helpers — load participants
+# Helpers — caching wrapper (UI concern: keeps @st.cache_data out of src/)
 # ---------------------------------------------------------------------------
-
-def _load_participants_from_bytes(data: bytes) -> tuple[list[str], pd.DataFrame]:
-    """
-    Parse participant xlsx.
-
-    Returns
-    -------
-    names : list[str]
-        Sorted list of participant names (column A).
-    df : pd.DataFrame
-        All roster columns (A–D + present), sorted by name.
-        Column E (present) is kept as-is from the file but overridden by
-        the checkboxes in the UI.
-    """
-    wb = load_workbook(io.BytesIO(data), read_only=True, data_only=True)
-    ws = wb.active
-
-    # Collect header row
-    headers: list[str] = []
-    for col in range(1, ws.max_column + 1):
-        val = ws.cell(row=1, column=col).value
-        headers.append(str(val).strip() if val else f"col_{col}")
-
-    rows: list[dict] = []
-    for row in range(2, ws.max_row + 1):
-        name_val = ws.cell(row=row, column=1).value
-        if name_val is None or not str(name_val).strip():
-            continue
-        row_dict: dict = {}
-        for col_idx, header in enumerate(headers, start=1):
-            row_dict[header] = ws.cell(row=row, column=col_idx).value
-        rows.append(row_dict)
-
-    wb.close()
-
-    def _alpha_key(s: str) -> str:
-        """Sort key: strip diacritics so Á/á sort with A, É/é with E, etc."""
-        return "".join(
-            c for c in unicodedata.normalize("NFD", s.lower())
-            if unicodedata.category(c) != "Mn"
-        )
-
-    rows.sort(key=lambda r: _alpha_key(str(r.get(headers[0]) or "")))
-    names = [str(r[headers[0]]).strip() for r in rows]
-
-    # Keep only the first five columns (name, role, company, country, present)
-    # so the DataFrame stays clean regardless of any pre-existing generated columns.
-    keep = headers[:5]
-    df = pd.DataFrame([{k: r.get(k) for k in keep} for r in rows])
-
-    return names, df
-
 
 @st.cache_data(show_spinner=False)
 def _load_from_path(path: str) -> tuple[list[str], pd.DataFrame]:
     """Cached version for the default file path."""
-    return _load_participants_from_bytes(Path(path).read_bytes())
+    return load_participants_from_path(path)
 
 
 # ---------------------------------------------------------------------------
@@ -103,52 +53,6 @@ def generate_groups(present: list[str]) -> dict[str, list[list[str]]]:
 def zoom_text(groups: list[list[str]], label: str = "Room") -> str:
     """Plain-text list ready to paste into Zoom breakout room names."""
     return "\n".join(f"{label} {i}: {', '.join(g)}" for i, g in enumerate(groups, 1))
-
-
-def _build_summary_df(
-    roster_df: pd.DataFrame,
-    present_set: set[str],
-    groups: dict[str, list[list[str]]],
-) -> pd.DataFrame:
-    """
-    Combine roster with current group assignments into a single DataFrame.
-    Non-present participants get empty group columns.
-    """
-    # Build lookup: name → group number
-    name_col = roster_df.columns[0]
-
-    pair_map = _assign_ids(groups["pairs"])
-    g4a_map  = _assign_ids(groups["g4a"])
-    g4b_map  = _assign_ids(groups["g4b"])
-
-    df = roster_df.copy()
-    df["present"]            = df[name_col].apply(lambda n: 1 if n in present_set else 0)
-    df["pair (round 1)"]     = df[name_col].apply(lambda n: pair_map.get(n, pd.NA))
-    df["group_4A (round 2)"] = df[name_col].apply(lambda n: g4a_map.get(n, pd.NA))
-    df["group_4B (round 3)"] = df[name_col].apply(lambda n: g4b_map.get(n, pd.NA))
-
-    # Cast to nullable integer so Arrow serialization works cleanly (absent rows → <NA>)
-    for col in ["pair (round 1)", "group_4A (round 2)", "group_4B (round 3)"]:
-        df[col] = df[col].astype(pd.Int64Dtype())
-
-    return df
-
-
-def _df_to_xlsx_bytes(df: pd.DataFrame) -> bytes:
-    """Serialise a DataFrame to xlsx bytes with light formatting."""
-    buf = io.BytesIO()
-    with pd.ExcelWriter(buf, engine="openpyxl") as writer:
-        df.to_excel(writer, index=False, sheet_name="Groups")
-        ws = writer.sheets["Groups"]
-        # Bold headers + auto-width
-        for cell in ws[1]:
-            cell.font = Font(bold=True)
-            cell.alignment = Alignment(horizontal="center")
-        for col_cells in ws.columns:
-            width = max(len(str(c.value or "")) for c in col_cells) + 4
-            ws.column_dimensions[col_cells[0].column_letter].width = min(width, 40)
-    buf.seek(0)
-    return buf.read()
 
 
 # ---------------------------------------------------------------------------
@@ -172,6 +76,7 @@ with st.sidebar:
         "Upload participants list",
         type=["xlsx"],
         help="Leave empty to use **tmp/participants.xlsx** in the project folder.",
+        key="upload_roster",
     )
 
     with st.expander("📋 Required file format"):
@@ -202,7 +107,7 @@ with st.sidebar:
 # ---------------------------------------------------------------------------
 if uploaded is not None:
     raw_bytes = uploaded.read()
-    all_names, roster_df = _load_participants_from_bytes(raw_bytes)
+    all_names, roster_df = load_participants_from_bytes(raw_bytes)
 elif DEFAULT_XLSX.exists():
     all_names, roster_df = _load_from_path(str(DEFAULT_XLSX))
 else:
@@ -229,11 +134,11 @@ st.subheader(f"Participants — {n_total} total")
 
 col_sel, col_desel = st.columns([1, 1], gap="small")
 with col_sel:
-    if st.button("✅ Select all", width="stretch"):
+    if st.button("✅ Select all", width="stretch", key="btn_select_all"):
         for i in range(n_total):
             st.session_state[f"p_{i}"] = True
 with col_desel:
-    if st.button("☐ Deselect all", width="stretch"):
+    if st.button("☐ Deselect all", width="stretch", key="btn_deselect_all"):
         for i in range(n_total):
             st.session_state[f"p_{i}"] = False
 
@@ -266,7 +171,7 @@ st.divider()
 # ---------------------------------------------------------------------------
 # Shuffle button
 # ---------------------------------------------------------------------------
-if st.button("🔀 Shuffle Groups", type="primary", width="stretch"):
+if st.button("🔀 Shuffle Groups", type="primary", width="stretch", key="btn_shuffle"):
     if len(present) < 2:
         st.error("Need at least 2 present participants to form groups.")
     else:
@@ -342,7 +247,7 @@ with tab4:
         "Absent participants are shown with empty group columns."
     )
 
-    summary_df = _build_summary_df(roster_df, present_set, groups)
+    summary_df = build_summary_df(roster_df, present_set, groups)
 
     st.dataframe(
         summary_df,
@@ -356,11 +261,12 @@ with tab4:
         },
     )
 
-    xlsx_bytes = _df_to_xlsx_bytes(summary_df)
+    xlsx_bytes = df_to_xlsx_bytes(summary_df)
     st.download_button(
         label="⬇️  Download as xlsx",
         data=xlsx_bytes,
         file_name="facilitation_groups.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         width="stretch",
+        key="btn_download_xlsx",
     )

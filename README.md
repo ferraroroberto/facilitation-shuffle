@@ -119,6 +119,8 @@ app/
   .streamlit/config.toml  Theme (indigo)
 src/
   randomize_groups.py     Group algorithm + CLI entry point (phases 1–3)
+  roster_io.py            Participant xlsx parsing (pure data logic)
+  summary.py              Summary DataFrame build + xlsx serialisation
 tmp/
   participants.xlsx       Participant roster (gitignored)
 launch_app.bat            Local launch
