@@ -27,7 +27,7 @@ DEFAULT_XLSX = ROOT / "tmp" / "participants.xlsx"
 
 # Make src/ importable so we can reuse the group-building logic.
 sys.path.insert(0, str(ROOT))
-from src.randomize_groups import build_groups  # noqa: E402  (after sys.path patch)
+from src.randomize_groups import _assign_ids, build_groups  # noqa: E402  (after sys.path patch)
 
 # ---------------------------------------------------------------------------
 # Helpers — load participants
@@ -117,9 +117,9 @@ def _build_summary_df(
     # Build lookup: name → group number
     name_col = roster_df.columns[0]
 
-    pair_map = {p: i for i, g in enumerate(groups["pairs"], 1) for p in g}
-    g4a_map  = {p: i for i, g in enumerate(groups["g4a"],   1) for p in g}
-    g4b_map  = {p: i for i, g in enumerate(groups["g4b"],   1) for p in g}
+    pair_map = _assign_ids(groups["pairs"])
+    g4a_map  = _assign_ids(groups["g4a"])
+    g4b_map  = _assign_ids(groups["g4b"])
 
     df = roster_df.copy()
     df["present"]            = df[name_col].apply(lambda n: 1 if n in present_set else 0)
