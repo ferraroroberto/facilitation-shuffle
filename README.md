@@ -74,6 +74,43 @@ Built by merging **whole** phase-1 units — pairs/trios are never split:
 
 Sizes come from a greedy partition of `n` into 4s and 3s (groups are at least 3 when `n ≥ 3`). Many random shuffles are evaluated; the one with the lowest **phase-2 cohort overlap penalty** is kept — minimizing how often former phase-2 tablemates end up in the same phase-3 group.
 
+## CLI usage
+
+`src/randomize_groups.py` ships a self-contained CLI that writes group ids directly back into the workbook (columns F–I) without launching the Streamlit UI.
+
+```powershell
+# Generate a sample workbook (creates tmp/participants.xlsx with 15 placeholder rows)
+& .\.venv\Scripts\python.exe -m src.randomize_groups --make-fixture
+
+# Run with the default workbook (tmp/participants.xlsx)
+& .\.venv\Scripts\python.exe -m src.randomize_groups
+
+# Run with a custom path
+& .\.venv\Scripts\python.exe -m src.randomize_groups path/to/roster.xlsx
+
+# Reproducible run — same seed always produces the same groups
+& .\.venv\Scripts\python.exe -m src.randomize_groups --seed 42
+```
+
+**Arguments:**
+
+| Argument | Default | Description |
+|---|---|---|
+| `xlsx` (positional) | `tmp/participants.xlsx` | Path to the participant workbook |
+| `--seed N` | none (random) | Integer RNG seed for reproducible runs |
+| `--make-fixture` | — | Create `tmp/participants.xlsx` with 15 placeholder names if the file is missing, then exit |
+
+**Output columns written (F–I):**
+
+| Column | Header | Content |
+|---|---|---|
+| F | `personal_readme_g2` | Phase-1 pair group id (1-based) |
+| G | `personal_readme_g4` | Phase-2 group-of-4 id (round A) |
+| H | `common_enemy_g4` | Phase-3 group-of-4 id (round B) |
+| I | `group_repeat` | Count of tablemates shared across both phase-2 and phase-3 groups |
+
+**CLI vs. UI:** the CLI writes ids back into the workbook and exits — useful for scripting, CI fixtures, or offline use. The Streamlit UI instead emits copy-paste Zoom room lists and a downloadable summary xlsx without modifying the original roster file.
+
 ## Project structure
 
 ```
@@ -81,7 +118,7 @@ app/
   app.py                  Streamlit entry point
   .streamlit/config.toml  Theme (indigo)
 src/
-  randomize_groups.py     Group algorithm (phases 1–3)
+  randomize_groups.py     Group algorithm + CLI entry point (phases 1–3)
 tmp/
   participants.xlsx       Participant roster (gitignored)
 launch_app.bat            Local launch
