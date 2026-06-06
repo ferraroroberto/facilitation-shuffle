@@ -44,7 +44,7 @@ Excel `.xlsx`, row 1 = headers:
 | B | `role` | optional |
 | C | `company` | optional |
 | D | `country` | optional |
-| E | `present` | optional (ignored — use the UI checkboxes) |
+| E | `present` | **UI:** optional — ignored; the UI uses checkboxes instead. **CLI:** required — set to `1` for each participant who should receive group ids; any other value or blank is treated as absent (no group ids assigned, no error). |
 
 The file is gitignored (`tmp/*.xlsx`) — participant names never reach the repository.
 
@@ -99,6 +99,8 @@ Sizes come from a greedy partition of `n` into 4s and 3s (groups are at least 3 
 | `xlsx` (positional) | `tmp/participants.xlsx` | Path to the participant workbook |
 | `--seed N` | none (random) | Integer RNG seed for reproducible runs |
 | `--make-fixture` | — | Create `tmp/participants.xlsx` with 15 placeholder names if the file is missing, then exit |
+
+**The `present` column (E) controls who gets assigned:** the CLI only assigns group ids to rows where column E equals `1`; participants with any other value or a blank cell are skipped silently. If you're starting from a fresh roster (no `present` column yet), run `--make-fixture` first — it produces a sample workbook with `present = 1` on every row that you can then replace with real names.
 
 **Output columns written (F–I):**
 
