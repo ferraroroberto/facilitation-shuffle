@@ -206,9 +206,13 @@ tab1, tab2, tab3, tab4 = st.tabs([
 def _render_round_tab(tab_id: str, label: str, phase_groups: list[list[str]], caption: str) -> None:
     st.caption(caption)
 
+    # value= is intentionally omitted: the shuffle handler always writes
+    # st.session_state["ta_<id>"] before this widget is rendered, so
+    # session_state is the sole owner of the text-area value.  Adding value=
+    # here would trigger Streamlit's "created with a default value but also set
+    # via Session State API" warning on every shuffle.
     st.text_area(
         "Copy and paste into Zoom:",
-        value=zoom_text(phase_groups, label),
         height=max(120, len(phase_groups) * 30),
         key=f"ta_{tab_id}",
     )
