@@ -37,9 +37,7 @@ flowchart TB
   APPPY -->|roster_df + groups| SUMMARY
   SUMMARY -->|imports _assign_ids| RANDGROUPS
 
-  subgraph cli["CLI path — independent of the Streamlit UI"]
-    RANDGROUPS -->|run(path, seed)\nreads + writes in place| XLSX
-  end
+  RANDGROUPS -->|"CLI path (run/main): reads + writes cols F-I in place, independent of the Streamlit UI"| XLSX
 
   subgraph ext["External dependencies (requirements.txt)"]
     STREAMLIT["streamlit"]
