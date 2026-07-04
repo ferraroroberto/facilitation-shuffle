@@ -1,0 +1,58 @@
+%% docs/architecture.mmd — facilitation-shuffle's own internal structure.
+%% Hand-authored, not generated — this repo's internal shape is semantic and
+%% can't be crawled the way the fleet-wide map is. Update this diagram in the
+%% same PR as any material structural change (a new phase in the group
+%% algorithm, a new UI tab, a new data source). Same anti-staleness contract
+%% as this repo's own `.fleet.toml` `description` field — see
+%% ferraroroberto/fleet-config#256 for the fleet-wide convention this
+%% dogfoods.
+
+flowchart TB
+  subgraph launchers["Launchers"]
+    LAUNCHAPP["launch_app.bat\nstreamlit run app/app.py"]
+    LAUNCHSRV["launch_server.bat\nstreamlit run + cloudflared tunnel"]
+  end
+
+  subgraph ui["app/ — Streamlit UI"]
+    APPPY["app.py\npage config · sidebar upload · presence checklist ·\nShuffle button · Pairs/G4A/G4B/Summary tabs"]
+    STCFG[".streamlit/config.toml\nindigo theme"]
+  end
+  LAUNCHAPP --> APPPY
+  LAUNCHSRV --> APPPY
+  APPPY -.->|reads| STCFG
+
+  subgraph data["tmp/participants.xlsx (gitignored)"]
+    XLSX["Roster: name · role · company · country · present\n+ generated cols F-I (CLI-written)"]
+  end
+
+  subgraph src["src/ — pure data logic (no streamlit import)"]
+    ROSTERIO["roster_io.py\nload_participants_from_bytes / _from_path\nxlsx -> (names, DataFrame)"]
+    RANDGROUPS["randomize_groups.py\nbuild_groups(present) — phase 1-3 algorithm\n+ CLI: run() / main() writes cols F-I directly\n+ _assign_ids() helper"]
+    SUMMARY["summary.py\nbuild_summary_df() + df_to_xlsx_bytes()"]
+  end
+
+  APPPY -->|upload bytes or default path| ROSTERIO
+  ROSTERIO -->|reads| XLSX
+  APPPY -->|present names| RANDGROUPS
+  APPPY -->|roster_df + groups| SUMMARY
+  SUMMARY -->|imports _assign_ids| RANDGROUPS
+
+  subgraph cli["CLI path — independent of the Streamlit UI"]
+    RANDGROUPS -->|run(path, seed)\nreads + writes in place| XLSX
+  end
+
+  subgraph ext["External dependencies (requirements.txt)"]
+    STREAMLIT["streamlit"]
+    PANDAS["pandas"]
+    OPENPYXL["openpyxl"]
+    CLOUDFLARED["cloudflared (launch_server.bat only, external binary)"]
+  end
+  APPPY --> STREAMLIT
+  ROSTERIO --> PANDAS
+  ROSTERIO --> OPENPYXL
+  RANDGROUPS --> OPENPYXL
+  SUMMARY --> PANDAS
+  SUMMARY --> OPENPYXL
+  LAUNCHSRV -.-> CLOUDFLARED
+
+  APPPY -->|Zoom-ready text + xlsx download| USER(("Program manager"))
