@@ -17,3 +17,7 @@ Canonical instructions for AI coding agents working in this repository. Claude C
 ## This repository
 Streamlit app that randomizes workshop participants into 1-2-4-all breakout groups for Zoom sessions.
 See `README.md` for setup, layout, and usage.
+
+## Internal architecture
+
+`docs/architecture.mmd` is a hand-authored Mermaid diagram of this repo's own internal structure — the Streamlit UI, the pure-data `src/` layer, the CLI path, and external dependencies. Update it in the same PR as any material structural change (a new phase in the group algorithm, a new UI tab, a new data source) — it is semantic content, not auto-generated, so it only stays correct by discipline.
