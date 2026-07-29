@@ -212,3 +212,5 @@ __marimo__/
 # temporary files and folders
 tmp/
 .claude/
+# Launcher scratch (ephemeral images/logs written by the tray launcher)
+.launcher-tmp/
